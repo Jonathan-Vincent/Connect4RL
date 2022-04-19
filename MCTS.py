@@ -2,7 +2,7 @@
 
 import numpy as np
 from tqdm import tqdm
-
+from collections import defaultdict
 
 #diag_dict is a dictionary storing all of the possible 4 in a row combinations
 #each (i,j) position is a key
@@ -64,103 +64,64 @@ def generate_diag_dict(nrows=6,ncols=7):
 class connect_four():
     def __init__(self,nrows=6,ncols=7):
         global diag_dict
-        self.state_p1 = np.zeros((nrows,ncols))
-        self.state_p2 = np.zeros((nrows,ncols))
-        self.state = np.zeros((nrows,ncols))
         self.nrows = nrows
         self.ncols = ncols
-        self.turn = "p1"
-        self.outcome = None
-        self.legal_moves = [i for i in range(ncols)]
-        self.move_count = [0 for i in range(ncols)]
+        self.base_state = np.zeros((nrows,ncols))
+        self.turn = 1
+        self.Q = defaultdict(lambda: 0)
+        self.starting_moves = [i for i in range(ncols)]
+        self.last_move = (0,0)
+        self.visited = []
 
     #checks if the last move results in a win
-    def is_win(self):
-        if self.turn == "p1":
-            board = self.state_p1
-        else:
-            board = self.state_p2
-            
-        #print(board)
+    def is_win(self,state,move):
         
-        row,col = self.last_move
-        diags = diag_dict[(row,col)]
+        diags = diag_dict[move]
         #iterate through
         for diag in diags:
-            if np.sum(board[diag]) == 4:
+            if abs(np.sum(state[diag])) == 4:
                 game.outcome = ("win",self.turn,diag)
-                return True
+                return self.turn
             
-        return False
+        return 0
+    
+    def legal_moves(self,state):
+        allowed = (np.sum(abs(state),axis=0)< self.nrows)
+        return np.where(allowed)[0]
+            
                 
     # add move to current board state
-    def add_move(self,move):
-        self.move_count[move] += 1
-        if self.move_count[move] == self.nrows:
-            self.legal_moves.remove(move)
+    def add_move(self,state,move):
+        
         for row in range(self.nrows):
-            if self.state[row,move] == 0:
-                if self.turn == "p1":
-                    self.state_p1[row,move] = 1
-                    self.state[row,move] = 1
-                else:
-                    self.state_p2[row,move] = 1
-                    self.state[row,move] = -1
-                
-                return row,move
+            if state[row,move] == 0:
+                state[row,move] = self.turn
+                return state,(row,move)
     
-    #play a game between agent1 and agent2
-    def run(self,agent1,agent2,verbose=False):
+    def depth_search(self,state):
         
-        for i in range(self.nrows*self.ncols):
-            if i % 2 == 0:
-                game.turn = "p1"
-                move = agent1(self.state,self.legal_moves, 1)
-            else:
-                game.turn = "p2"
-                move = agent2(self.state,self.legal_moves, -1)
-            
-            self.last_move = self.add_move(move)
-            if verbose:
-                print(self.state,i)
-            if self.is_win():
-                return
+        string_state = ''.join([str(int(i+2)) for i in state.flatten()])
+        if string_state not in self.visited:
+            self.visited.append(string_state)
         
-        self.outcome = ("Tie","")
+        actions = self.legal_moves(state)
+        if len(actions) == 0:
+            return 0
         
-
-            
-
-class Agent():
-    def __init__(self,move_func,learn=False):
-        self.get_move = move_func
-        self.learn = learn
+        a = np.random.choice(actions)
+        state_p, self.last_move = self.add_move(state,a)
+        self.turn *= -1
+        
+        v = self.is_win(state_p,self.last_move)
+        if v != 0:
+            return v
+        
+        v = self.depth_search(state_p)
+        
+        return v
     
-    def __call__(self, state, legal_moves, obj):
-        if len(legal_moves) == 1:
-            return legal_moves[0]
-        return self.get_move(state, legal_moves, obj)
-            
 
-def random_move(state, legal_moves, obj):
-    return np.random.choice(legal_moves)
-
-def middle(state,legal_moves,obj):
-    return legal_moves[len(legal_moves)//2]
-
-agent1 = Agent(random_move)
-agent2 = Agent(middle)
-
-p1_wins = 0
-p2_wins = 0
 diag_dict = generate_diag_dict()
-for i in tqdm(range(1000)):
-    game = connect_four()
-    game.run(agent1,agent2,verbose=False)
-    #print(i,game.outcome)
-    if game.outcome[1] == "p1":
-        p1_wins += 1
-    elif game.outcome[1] == "p2":
-        p2_wins += 1
+game = connect_four()
 
-print(p1_wins,p2_wins)
+game.depth_search(game.base_state)
