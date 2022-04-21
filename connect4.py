@@ -14,7 +14,7 @@ class connect_four():
         self.outcome = None
         self.move_count = [0 for i in range(ncols)]
         self.legal_moves = [i for i in range(ncols)]
-        
+        self.diag_dict = {}
         self.generate_diag_dict()
     
     #diag_dict is a dictionary storing all of the possible 4 in a row combinations
@@ -25,7 +25,6 @@ class connect_four():
     # ((0, 0, 0, 0), (0, 1, 2, 3)),
     # ((0, 1, 2, 3), (0, 1, 2, 3))]
     def generate_diag_dict(self):
-        self.diag_dict = {}
         #rows
         for row in range(self.nrows-3):
             for col in range(self.ncols):
