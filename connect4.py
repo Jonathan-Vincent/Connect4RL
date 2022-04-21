@@ -106,9 +106,9 @@ class connect_four():
                 else:
                     self.state_p2[row,move] = 1
                     self.state[row,move] = -1
-                
-                return row,move
                 self.turn *= -1
+                self.last_move = row,move
+                break
     
     #play a game between agent1 and agent2
     def run(self,agent1,agent2,verbose=False):
@@ -120,7 +120,7 @@ class connect_four():
             else:
                 move = agent2(self,self.legal_moves, -1)
             
-            self.last_move = self.add_move(move)
+            self.add_move(move)
             if verbose:
                 print(self.state,i)
             if self.is_win():
