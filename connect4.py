@@ -161,7 +161,8 @@ class Agent():
         return self.get_move(state, legal_moves, obj)
             
 
-def random_move(state, legal_moves, obj):
+def random_move(game, legal_moves, obj):
+    return np.random.choice(legal_moves)
     return np.random.choice(legal_moves)
 
 
