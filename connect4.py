@@ -192,18 +192,26 @@ def multi_step_lookahead(game, legal_moves, obj, k = 2):
     return np.random.choice(legal_moves)
 
 
-agent1 = Agent(random_move)
-agent2 = Agent(random_move)
+def run_simulations(agent_1_strategy, agent_2_strategy, n_games, verbose=False):
+    agent1 = Agent(agent_1_strategy)
+    agent2 = Agent(agent_2_strategy)
 
-p1_wins = 0
-p2_wins = 0
-for i in tqdm(range(1000)):
+    p1_wins = 0
+    p2_wins = 0
     game = connect_four()
-    game.run(agent1,agent2,verbose=False)
-    #print(i,game.outcome)
-    if game.outcome[1] == "p1":
-        p1_wins += 1
-    elif game.outcome[1] == "p2":
-        p2_wins += 1
+    for i in tqdm(range(n_games)):
+        game.run(agent1,agent2,verbose=verbose)
+        #print(i,game.outcome)
+        if game.outcome[1] == "p1":
+            p1_wins += 1
+        elif game.outcome[1] == "p2":
+            p2_wins += 1
+        game.reset()
 
-print(p1_wins,p2_wins)
+    print(p1_wins,p2_wins)
+    
+def main():
+    run_simulations()
+
+if __name__ == "__main__":
+    main()
