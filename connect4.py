@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
 from tqdm import tqdm
+from copy import deepcopy
+
 
 class connect_four():
     def __init__(self,nrows=6,ncols=7):
