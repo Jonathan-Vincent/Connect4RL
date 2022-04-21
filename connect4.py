@@ -163,6 +163,32 @@ class Agent():
 
 def random_move(game, legal_moves, obj):
     return np.random.choice(legal_moves)
+
+def one_step_lookahead(game, legal_moves, obj):
+    game_copy = deepcopy(game)
+    for move in legal_moves:
+        game_copy.add_move(move)
+        if game_copy.is_win():
+            return move
+        game_copy = deepcopy(game)
+    return np.random.choice(legal_moves)
+
+def multi_step_lookahead(game, legal_moves, obj, k = 2):
+    game_copy = deepcopy(game)
+    if k == 1:
+        return(one_step_lookahead(game_copy, game_copy.legal_moves, obj))
+    else:
+        for i in legal_moves:
+            game_copy.add_move(i)
+            for j in game.legal_moves:
+                game_copy_2 = deepcopy(game_copy)
+                game_copy_2.add_move(j)
+                if game_copy_2.is_win():
+                    continue
+                game_copy_2.add_move(multi_step_lookahead(game_copy_2, game_copy_2.legal_moves, -obj, k-1))
+                if game_copy_2.is_win():
+                    return i
+            game_copy = deepcopy(game)
     return np.random.choice(legal_moves)
 
 
