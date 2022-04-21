@@ -4,6 +4,64 @@ from tqdm import tqdm
 from copy import deepcopy
 
 
+
+#diag_dict is a dictionary storing all of the possible 4 in a row combinations
+#each (i,j) position is a key
+#the values are the list of 4-vectors that go through (i,j)
+#so diag_dict[(0,0)] returns
+#[((0, 1, 2, 3), (0, 0, 0, 0)),
+# ((0, 0, 0, 0), (0, 1, 2, 3)),
+# ((0, 1, 2, 3), (0, 1, 2, 3))]
+    
+def generate_diag_dict(nrows=6,ncols=7):
+    diag_dict = {}
+    #rows
+    for row in range(nrows-3):
+        for col in range(ncols):
+            row_tup = [row + i for i in range(4)]
+            col_tup = [col for i in range(4)]
+            for pos in zip(row_tup,col_tup):
+                if pos not in diag_dict.keys():
+                    diag_dict[pos] = [(tuple(row_tup),tuple(col_tup))]
+                else:
+                    diag_dict[pos] = diag_dict[pos]  + [(tuple(row_tup),tuple(col_tup))]
+                    
+    #cols
+    for row in range(nrows):
+        for col in range(ncols-3):
+            row_tup = [row for i in range(4)]
+            col_tup = [col+i for i in range(4)]
+            for pos in zip(row_tup,col_tup):
+                if pos not in diag_dict.keys():
+                    diag_dict[pos] = [(tuple(row_tup),tuple(col_tup))]
+                else:
+                    diag_dict[pos] = diag_dict[pos]  + [(tuple(row_tup),tuple(col_tup))]
+                    
+    
+    #right diagonals
+    for row in range(nrows-3):
+        for col in range(ncols-3):
+            row_tup = [row+i for i in range(4)]
+            col_tup = [col+i for i in range(4)]
+            for pos in zip(row_tup,col_tup):
+                if pos not in diag_dict.keys():
+                    diag_dict[pos] = [(tuple(row_tup),tuple(col_tup))]
+                else:
+                    diag_dict[pos] = diag_dict[pos]  + [(tuple(row_tup),tuple(col_tup))]
+                    
+    #left diagonals
+    for row in range(3,nrows):
+        for col in range(ncols-3):
+            row_tup = [row-i for i in range(4)]
+            col_tup = [col+i for i in range(4)]
+            for pos in zip(row_tup,col_tup):
+                if pos not in diag_dict.keys():
+                    diag_dict[pos] = [(tuple(row_tup),tuple(col_tup))]
+                else:
+                    diag_dict[pos] = diag_dict[pos]  + [(tuple(row_tup),tuple(col_tup))]
+                    
+    return diag_dict
+
 class connect_four():
     def __init__(self,nrows=6,ncols=7):
         self.state_p1 = np.zeros((nrows,ncols))
@@ -13,65 +71,10 @@ class connect_four():
         self.ncols = ncols
         self.turn = 1
         self.outcome = None
-        self.move_count = [0 for i in range(ncols)]
         self.legal_moves = [i for i in range(ncols)]
-        self.diag_dict = {}
-        self.generate_diag_dict()
-    
-    #diag_dict is a dictionary storing all of the possible 4 in a row combinations
-    #each (i,j) position is a key
-    #the values are the list of 4-vectors that go through (i,j)
-    #so diag_dict[(0,0)] returns
-    #[((0, 1, 2, 3), (0, 0, 0, 0)),
-    # ((0, 0, 0, 0), (0, 1, 2, 3)),
-    # ((0, 1, 2, 3), (0, 1, 2, 3))]
-    def generate_diag_dict(self):
-        #rows
-        for row in range(self.nrows-3):
-            for col in range(self.ncols):
-                row_tup = [row + i for i in range(4)]
-                col_tup = [col for i in range(4)]
-                for pos in zip(row_tup,col_tup):
-                    if pos not in self.diag_dict.keys():
-                        self.diag_dict[pos] = [(tuple(row_tup),tuple(col_tup))]
-                    else:
-                        self.diag_dict[pos] = self.diag_dict[pos]  + [(tuple(row_tup),tuple(col_tup))]
-                        
-        #cols
-        for row in range(self.nrows):
-            for col in range(self.ncols-3):
-                row_tup = [row for i in range(4)]
-                col_tup = [col+i for i in range(4)]
-                for pos in zip(row_tup,col_tup):
-                    if pos not in self.diag_dict.keys():
-                        self.diag_dict[pos] = [(tuple(row_tup),tuple(col_tup))]
-                    else:
-                        self.diag_dict[pos] = self.diag_dict[pos]  + [(tuple(row_tup),tuple(col_tup))]
-                        
-        
-        #right diagonals
-        for row in range(self.nrows-3):
-            for col in range(self.ncols-3):
-                row_tup = [row+i for i in range(4)]
-                col_tup = [col+i for i in range(4)]
-                for pos in zip(row_tup,col_tup):
-                    if pos not in self.diag_dict.keys():
-                        self.diag_dict[pos] = [(tuple(row_tup),tuple(col_tup))]
-                    else:
-                        self.diag_dict[pos] = self.diag_dict[pos]  + [(tuple(row_tup),tuple(col_tup))]
-                        
-        #left diagonals
-        for row in range(3,self.nrows):
-            for col in range(self.ncols-3):
-                row_tup = [row-i for i in range(4)]
-                col_tup = [col+i for i in range(4)]
-                for pos in zip(row_tup,col_tup):
-                    if pos not in self.diag_dict.keys():
-                        self.diag_dict[pos] = [(tuple(row_tup),tuple(col_tup))]
-                    else:
-                        self.diag_dict[pos] = self.diag_dict[pos]  + [(tuple(row_tup),tuple(col_tup))]
-        
-        
+        self.move_count = [0 for i in range(ncols)]
+        self.diag_dict = generate_diag_dict(nrows,ncols)
+
     #checks if the last move results in a win
     def is_win(self):
         if self.turn == 1:
@@ -127,6 +130,8 @@ class connect_four():
                 return
         
         self.outcome = ("Tie","")
+        
+
             
     def change_state(self, state):
         self.state = state
@@ -193,6 +198,9 @@ def multi_step_lookahead(game, legal_moves, obj, k = 2):
     return np.random.choice(legal_moves)
 
 
+def middle(game, legal_moves, obj):
+    return legal_moves[len(legal_moves)//2]
+
 def run_simulations(agent_1_strategy, agent_2_strategy, n_games, verbose=False):
     agent1 = Agent(agent_1_strategy)
     agent2 = Agent(agent_2_strategy)
@@ -208,11 +216,14 @@ def run_simulations(agent_1_strategy, agent_2_strategy, n_games, verbose=False):
         elif game.outcome[1] == "p2":
             p2_wins += 1
         game.reset()
-
     print(p1_wins,p2_wins)
     
 def main():
-    run_simulations()
+    agent_1_strategy = one_step_lookahead
+    agent_2_strategy = random_move
+    n_games = 1000
+    verbose=False
+    run_simulations(agent_1_strategy, agent_2_strategy, n_games, verbose=verbose)
 
 if __name__ == "__main__":
     main()
