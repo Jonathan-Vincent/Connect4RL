@@ -127,6 +127,28 @@ class connect_four():
         
         self.outcome = ("Tie","")
             
+    def change_state(self, state):
+        self.state = state
+        self.state_p1 = self.state[self.state == 1]
+        self.state_p2 = self.state[self.state == -1]
+        self.nrows = self.state.shape[0]
+        self.ncols = self.state.shape[1]
+        self.turn = 2*np.sum(self.state) - 1
+        self.outcome = None
+        self.move_count = sum(np.abs(self.state), axis = 1)
+        self.legal_moves = [i for i in range(self.ncols)]
+        for i in range(self.ncols):
+            if self.move_count[i] >= self.nrows: 
+                self.legal_moves.remove(i)
+        
+    def reset(self):
+        self.state = np.zeros((self.nrows,self.ncols))
+        self.state_p1 = np.zeros((self.nrows,self.ncols))
+        self.state_p2 = np.zeros((self.nrows,self.ncols))
+        self.turn = 1
+        self.outcome = None
+        self.move_count = np.zeros(self.ncols)
+        self.legal_moves = [i for i in range(self.ncols)]
 
 class Agent():
     def __init__(self,move_func,learn=False):
