@@ -10,7 +10,7 @@ class connect_four():
         self.state = np.zeros((nrows,ncols))
         self.nrows = nrows
         self.ncols = ncols
-        self.turn = "p1"
+        self.turn = 1
         self.outcome = None
         self.move_count = [0 for i in range(ncols)]
         self.legal_moves = [i for i in range(ncols)]
@@ -73,7 +73,7 @@ class connect_four():
         
     #checks if the last move results in a win
     def is_win(self):
-        if self.turn == "p1":
+        if self.turn == 1:
             board = self.state_p1
         else:
             board = self.state_p2
@@ -85,8 +85,11 @@ class connect_four():
         #iterate through
         for diag in diags:
             if np.sum(board[diag]) == 4:
-                game.outcome = ("win",self.turn,diag)
-                return True
+                self.outcome = ("win",self.turn,diag)
+                if self.turn == 1:
+                    return(1)
+                if self.turn == -1:
+                    return(-1)
             
         return False
                 
@@ -97,7 +100,7 @@ class connect_four():
             self.legal_moves.remove(move)
         for row in range(self.nrows):
             if self.state[row,move] == 0:
-                if self.turn == "p1":
+                if self.turn == 1:
                     self.state_p1[row,move] = 1
                     self.state[row,move] = 1
                 else:
@@ -105,17 +108,17 @@ class connect_four():
                     self.state[row,move] = -1
                 
                 return row,move
+                self.turn *= -1
     
     #play a game between agent1 and agent2
     def run(self,agent1,agent2,verbose=False):
         
         for i in range(self.nrows*self.ncols):
-            if i % 2 == 0:
-                game.turn = "p1"
                 move = agent1(self.state,self.legal_moves, 1)
+            if self.turn == 1:
+                move = agent1(self,self.legal_moves, 1)
             else:
-                game.turn = "p2"
-                move = agent2(self.state,self.legal_moves, -1)
+                move = agent2(self,self.legal_moves, -1)
             
             self.last_move = self.add_move(move)
             if verbose:
