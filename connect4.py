@@ -113,8 +113,7 @@ class connect_four():
     #play a game between agent1 and agent2
     def run(self,agent1,agent2,verbose=False):
         
-        for i in range(self.nrows*self.ncols):
-                move = agent1(self.state,self.legal_moves, 1)
+        for i in range(self.nrows*self.ncols) - sum(self.move_count):
             if self.turn == 1:
                 move = agent1(self,self.legal_moves, 1)
             else:
