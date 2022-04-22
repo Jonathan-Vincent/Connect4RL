@@ -174,7 +174,8 @@ def one_step_lookahead(game, legal_moves, obj):
     game_copy = deepcopy(game)
     for move in legal_moves:
         game_copy.add_move(move)
-        if game_copy.is_win():
+        game_copy.check_win()
+        if game_copy.outcome:
             return move
         game_copy = deepcopy(game)
     return np.random.choice(legal_moves)
@@ -189,14 +190,15 @@ def multi_step_lookahead(game, legal_moves, obj, k = 2):
             for j in game.legal_moves:
                 game_copy_2 = deepcopy(game_copy)
                 game_copy_2.add_move(j)
-                if game_copy_2.is_win():
+                game_copy_2.check_win()
+                if game_copy_2.outcome:
                     continue
                 game_copy_2.add_move(multi_step_lookahead(game_copy_2, game_copy_2.legal_moves, -obj, k-1))
-                if game_copy_2.is_win():
+                game_copy_2.check_win()
+                if game_copy_2.outcome:
                     return i
             game_copy = deepcopy(game)
     return np.random.choice(legal_moves)
-
 
 def middle(game, legal_moves, obj):
     return legal_moves[len(legal_moves)//2]
@@ -208,7 +210,7 @@ def run_simulations(agent_1_strategy, agent_2_strategy, n_games, verbose=False):
     p1_wins = 0
     p2_wins = 0
     game = connect_four()
-    for i in tqdm(range(n_games)):
+    for _ in tqdm(range(n_games)):
         game.run(agent1,agent2,verbose=verbose)
         #print(i,game.outcome)
         if game.outcome[1] == 1:
@@ -219,7 +221,7 @@ def run_simulations(agent_1_strategy, agent_2_strategy, n_games, verbose=False):
     print(p1_wins,p2_wins)
     
 def main():
-    agent_1_strategy = random_move
+    agent_1_strategy = one_step_lookahead
     agent_2_strategy = random_move
     n_games = 1000
     verbose=False
