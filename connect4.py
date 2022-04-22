@@ -76,7 +76,7 @@ class connect_four():
         self.diag_dict = generate_diag_dict(nrows,ncols)
 
     #checks if the last move results in a win
-    def is_win(self):
+    def check_win(self):
         if self.turn == 1:
             board = self.state_p1
         else:
@@ -94,8 +94,7 @@ class connect_four():
                     return(1)
                 if self.turn == -1:
                     return(-1)
-            
-        return False
+
                 
     # add move to current board state
     def add_move(self,move):
@@ -110,14 +109,15 @@ class connect_four():
                 else:
                     self.state_p2[row,move] = 1
                     self.state[row,move] = -1
-                self.turn *= -1
                 self.last_move = row,move
+                self.check_win()
+                self.turn *= -1
                 break
     
     #play a game between agent1 and agent2
     def run(self,agent1,agent2,verbose=False):
         
-        for i in range(self.nrows*self.ncols) - sum(self.move_count):
+        for i in range(self.nrows*self.ncols - int(np.sum(self.move_count))) :
             if self.turn == 1:
                 move = agent1(self,self.legal_moves, 1)
             else:
@@ -126,7 +126,7 @@ class connect_four():
             self.add_move(move)
             if verbose:
                 print(self.state,i)
-            if self.is_win():
+            if self.outcome:
                 return
         
         self.outcome = ("Tie","")
@@ -211,15 +211,15 @@ def run_simulations(agent_1_strategy, agent_2_strategy, n_games, verbose=False):
     for i in tqdm(range(n_games)):
         game.run(agent1,agent2,verbose=verbose)
         #print(i,game.outcome)
-        if game.outcome[1] == "p1":
+        if game.outcome[1] == 1:
             p1_wins += 1
-        elif game.outcome[1] == "p2":
+        elif game.outcome[1] == -1:
             p2_wins += 1
         game.reset()
     print(p1_wins,p2_wins)
     
 def main():
-    agent_1_strategy = one_step_lookahead
+    agent_1_strategy = random_move
     agent_2_strategy = random_move
     n_games = 1000
     verbose=False
