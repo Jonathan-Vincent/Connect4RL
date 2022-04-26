@@ -114,14 +114,34 @@ class connect_four_MCTS():
         return np.array([int(x)-1 for x in state]).reshape(self.nrows,self.ncols)
         
     
-    def MCTS(self,root,n_branches=10000):
+    def MCTS(self,root,player,n_branches=100,c=2,symmetry=True):
         #node has form (state,parent_move)
-        def policy(actions):
-            return np.random.choice(actions)
+        self.history = []
+        def policy(state,actions):
+            if len(actions) == 1:
+                return actions[0]
+            
+            
+            N = np.sum(self.Q[self.state_to_string(state)])
+            
+            if N == 0:
+                return np.random.choice(actions)
+            
+            best = -np.inf
+            for action in actions:
+                state_p = state.copy()
+                state_p, move = self.add_move(state_p, action)
+                results = self.Q[self.state_to_string(state_p)]
+                n = sum(results)+0.001 #for stability
+                UCT = results[player]/n + c*np.sqrt(np.log(N)/n)
+                if UCT > best:
+                    best = UCT
+                    best_action = action
+            return best_action
         
         def select(node):
             actions = self.legal_moves(node[0])
-            action = policy(actions)
+            action = policy(node[0],actions)
             state_p, move = self.add_move(node[0],action)
             self.history.append(move)
             self.turn *= -1
@@ -135,41 +155,89 @@ class connect_four_MCTS():
             return res
         
         def backprop(node,result):
-            if np.sum(abs(node[0])) == 0:
+            if np.sum(abs(node[0])) == moves_played:
                 return
             
             string_state = self.state_to_string(node[0])
             self.Q[string_state][result] += 1
+            
+            if symmetry:
+                sym_state = node[0].T[::-1].T
+                string_sym_state = self.state_to_string(sym_state)
+                self.Q[string_sym_state][result] += 1
+            
             parent = (self.remove_move(node[0],self.history[-1]),self.history.pop())
             backprop(parent,result)
         
+        
+        moves_played = np.sum(abs(root[0]))
+        if moves_played >= self.nrows*self.ncols -1:
+            return
         #run branches MCTS runs
-        for _ in tqdm(range(n_branches)):
-            leaf = select((root,None))  #None indicates there is no parent move
+        for _ in range(n_branches):
+            leaf = select(root) 
             res = rollout(leaf)
             backprop(leaf,res)
-            self.turn = 1
+            self.turn = player
             
     def best_move(self,state,player):
-        best_score = 0
-        for action in self.legal_moves(state):
+        best_score = -np.inf
+        actions = self.legal_moves(state)
+        
+        if len(actions) == 1:
+            return actions[0]
+        elif len(actions) == 0:
+            return "draw"
+        
+        for action in actions:
             state_p = state.copy()
             state_p, move = self.add_move(state_p, action)
             results = self.Q[self.state_to_string(state_p)]
             
             #score ignores draws
-            score = ((results[1] - results[2])*player)/sum(results)
+            score = ((results[1] - results[2])*player)/(0.00001+sum(results))
             print(action,results,score)
             if score > best_score:
                 best_score = score
                 chosen_move = action
                 
-        return chosen_move, best_score
+        return chosen_move
+    
+    def run_game(self,n_branches=100):
+        self.state = self.base_state.copy()
+        self.turn = 1
+        res = None
+        move = (0,0)
+        while res == None:
+            
+            self.MCTS((self.state,move),self.turn,n_branches=n_branches)
+            chosen_move = self.best_move(self.state, self.turn)
+            #catch draws
+            if chosen_move == "draw":
+                return 0
+            
+            self.state, move = self.add_move(self.state, chosen_move)
+            res = self.result(self.state,move)
+            
+            print(game.state)
+            print("Player ",self.turn,move)
+            
+            self.turn = self.turn*-1
+            
+        return res
             
 if __name__ == "__main__":
     
     game = connect_four_MCTS()
     
-    game.MCTS(game.base_state)
-    print("MCTS complete")
-    print(game.best_move(game.base_state,1))
+    #plays 20 games
+    #average around 20 moves per game, 100 MCTS branches per move
+    #~40,000 branches seen
+    for _ in range(20):
+        game.run_game()
+    
+    for k,v in game.Q.items():
+        if sum(v) > 1000:
+            print(game.string_to_state(k))
+            print(v)
+        
