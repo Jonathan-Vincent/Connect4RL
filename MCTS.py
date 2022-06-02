@@ -3,6 +3,8 @@
 import numpy as np
 from tqdm import tqdm
 from collections import defaultdict
+import matplotlib.pyplot as plt
+import time as time
 
 #diag_dict is a dictionary storing all of the possible 4 in a row combinations
 #each (i,j) position is a key
@@ -70,9 +72,7 @@ class connect_four_MCTS():
         self.base_state = np.zeros((nrows,ncols))
         self.turn = 1
         self.Q = defaultdict(lambda: [0,0,0]) #[draws,p1_wins,p2_wins]
-        self.starting_moves = [i for i in range(ncols)]
         self.last_move = (0,0)
-        self.visited = []
         self.history = []
 
     #checks if the last move results in a win
@@ -84,9 +84,10 @@ class connect_four_MCTS():
             diags = self.diag_dict[move]
             #iterate through
             for diag in diags:
-                if np.sum(state[diag]) == 4:
+                diag_sum = np.sum(state[diag])
+                if diag_sum == 4:
                     return 1
-                elif np.sum(state[diag]) == -4:
+                elif diag_sum == -4:
                     return -1
                 
             return None
@@ -114,37 +115,20 @@ class connect_four_MCTS():
         return np.array([int(x)-1 for x in state]).reshape(self.nrows,self.ncols)
         
     
-    def MCTS(self,root,player,n_branches=100,c=2,symmetry=True):
+    def MCTS(self,root,player,n_branches,symmetry=True):
         #node has form (state,parent_move)
         self.history = []
-        def policy(state,actions):
-            if len(actions) == 1:
-                return actions[0]
+        
+        def rollout_policy(state):
+            actions = self.legal_moves(state)
+            return np.random.choice(actions)
             
-            
-            N = np.sum(self.Q[self.state_to_string(state)])
-            
-            if N == 0:
-                return np.random.choice(actions)
-            
-            best = -np.inf
-            for action in actions:
-                state_p = state.copy()
-                state_p, move = self.add_move(state_p, action)
-                results = self.Q[self.state_to_string(state_p)]
-                n = sum(results)+0.001 #for stability
-                UCT = results[player]/n + c*np.sqrt(np.log(N)/n)
-                if UCT > best:
-                    best = UCT
-                    best_action = action
-            return best_action
         
         def select(node):
-            actions = self.legal_moves(node[0])
-            action = policy(node[0],actions)
+            action = rollout_policy(node[0])
             state_p, move = self.add_move(node[0],action)
             self.history.append(move)
-            self.turn *= -1
+            self.turn = -self.turn
             return state_p, move
         
         def rollout(node):
@@ -180,38 +164,45 @@ class connect_four_MCTS():
             backprop(leaf,res)
             self.turn = player
             
-    def best_move(self,state,player):
-        best_score = -np.inf
+    
+    def policy(self,state,C=np.sqrt(2)):
         actions = self.legal_moves(state)
-        
         if len(actions) == 1:
             return actions[0]
-        elif len(actions) == 0:
-            return "draw"
         
+        N = max(2,np.sum(self.Q[self.state_to_string(state)]))
+        
+        #print("action|exploit|explore|UCT")
+        best = -np.inf
         for action in actions:
             state_p = state.copy()
             state_p, move = self.add_move(state_p, action)
             results = self.Q[self.state_to_string(state_p)]
-            
-            #score ignores draws
-            score = ((results[1] - results[2])*player)/(0.00001+sum(results))
-            print(action,results,score)
-            if score > best_score:
-                best_score = score
-                chosen_move = action
+            n = max(1,sum(results))
+            exploit = results[self.turn]/n
+            explore =  C*np.sqrt(np.log(N)/n)
+            UCT = exploit + explore
+            #print(action,"    |",np.round(exploit,3),"|",np.round(explore,3),"|",np.round(UCT,3))
+            if UCT > best:
+                best = UCT
+                best_action = action
                 
-        return chosen_move
+        return best_action
     
-    def run_game(self,n_branches=100):
+    def run_game(self,n_branches,C=np.sqrt(2),use_MCTS=True,verbose=False):
         self.state = self.base_state.copy()
         self.turn = 1
         res = None
         move = (0,0)
         while res == None:
             
-            self.MCTS((self.state,move),self.turn,n_branches=n_branches)
-            chosen_move = self.best_move(self.state, self.turn)
+            self.MCTS((self.state,move),self.turn,n_branches)
+            #print(np.where(self.state ==-1, 2, self.state))
+            chosen_move = self.policy(self.state,C=C)
+            if not use_MCTS and self.turn == -1:
+                allowed = (np.sum(abs(self.state),axis=0)< self.nrows)
+                chosen_move = np.random.choice(np.where(allowed)[0])
+                    
             #catch draws
             if chosen_move == "draw":
                 return 0
@@ -219,10 +210,11 @@ class connect_four_MCTS():
             self.state, move = self.add_move(self.state, chosen_move)
             res = self.result(self.state,move)
             
-            print(game.state)
-            print("Player ",self.turn,move)
+            if verbose:
+                time.sleep(0.1)
+                print(np.where(self.state ==-1, 2, self.state))
             
-            self.turn = self.turn*-1
+            self.turn = -self.turn
             
         return res
             
@@ -230,14 +222,48 @@ if __name__ == "__main__":
     
     game = connect_four_MCTS()
     
-    #plays 20 games
+    #plays 100 games
     #average around 20 moves per game, 100 MCTS branches per move
     #~40,000 branches seen
-    for _ in range(20):
-        game.run_game()
+    def anneal(i,n):
+        return np.sqrt(2)
+        #return 3*(1-(i/n)) + (i/n)
+        
+    n = 1000
+    games = []
     
+    for i in range(n):
+        game.run_game(64,C=anneal(i,n))
+        print(i,"\nC-value:", anneal(i,n), "Game length:",np.sum(abs(game.state)))
+        print(np.where(game.state ==-1, 2, game.state))
+        games.append(np.sum(abs(game.state)))
+        plt.plot(games)
+        plt.show()
+        
+        if i % 10 == 9:
+            results = [0,0,0]
+            for j in range(10):
+                res = game.run_game(64,C=np.sqrt(2),use_MCTS=False,verbose=False)
+                if res == -1:
+                    print("Win state:",j)
+                    print(np.where(game.state ==-1, 2, game.state))
+                #print(len(game.Q))
+                results[res] += 1
+            
+            print(i,"Win rate:",results[1]/10,len(game.Q))
+    
+    
+        
+   
+        
+    total_printed = 0
     for k,v in game.Q.items():
-        if sum(v) > 1000:
+        if np.sum(v) > 20:
+            total_printed += 1
             print(game.string_to_state(k))
             print(v)
-        
+            print(v[1]/sum(v))
+            if total_printed == 7:
+                break
+
+      
