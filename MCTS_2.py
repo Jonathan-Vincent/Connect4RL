@@ -7,7 +7,7 @@ class MCTS:
         self.game = game
         self.n_branches = n_branches
         self.c = c
-        self.symetry = symmetry
+        self.symmetry = symmetry
         self.base_move = self.game.moves_played
         # Q has values of form [draws, player1, player2]
         self.Q = defaultdict(lambda: [0,0,0])
@@ -34,8 +34,13 @@ class MCTS:
             self.game.remove_move()
         return best_action
     
+    
+    def rollout_policy(self):
+        actions = self.game.legal_moves()
+        return np.random.choice(actions)
+    
     def make_move(self):
-        action = self.policy()
+        action = self.rollout_policy()
         self.game.add_move(action)
     
     def rollout(self):
@@ -48,7 +53,7 @@ class MCTS:
         string_state = self.game.state_to_string()
         self.Q[string_state][result] += 1
         
-        if self.symetry:
+        if self.symmetry:
             sym_state = self.game.state.T[::-1].T
             string_sym_state = self.game.state_to_string(sym_state)
             self.Q[string_sym_state][result] += 1
@@ -67,4 +72,4 @@ class MCTS:
             result = self.rollout()
             self.backprop(result)
             
-        return(self.policy(explore = 0))
+        return(self.policy())

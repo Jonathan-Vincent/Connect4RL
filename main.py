@@ -5,7 +5,7 @@ import time, os
 def run(game):
     res = None
     while res == None:
-        mcts = MCTS(game, n_branches=1000, c=10000, symmetry=False)
+        mcts = MCTS(game, n_branches=100, c=2, symmetry=False)
         chosen_move = mcts.run()
         #catch draws
         if chosen_move in ["draw", "player1", "player2"]:
