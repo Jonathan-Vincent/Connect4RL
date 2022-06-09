@@ -1,6 +1,25 @@
 import numpy as np
 from collections import defaultdict
 from Connect_4 import Connect_four
+from tensorflow import keras
+from keras.layers import Dense, Dropout, Flatten, Conv2D, Activation, Add, Input
+
+def make_model(inputs, outputs, n_layers=2, n_nodes=64, activation='selu', dropout=0.2):
+    input_layer = Input(shape=(inputs,))
+    layer = input_layer
+    # make resnet layers
+    for i in range(n_layers):
+        conv_layer = Conv2D(n_nodes, 4, activation=activation, padding='same')(layer)
+        dropout_layer = Dropout(dropout)(conv_layer)
+        adding_layer = Add()([input_layer, dropout_layer])
+        layer = Activation(activation)(adding_layer)
+    flatened_layer = Flatten()(layer)
+    policy_dense = Dense(64, activation=activation)(flatened_layer)
+    Q_dense = Dense(64, activation=activation)(flatened_layer)
+    output_policy = Dense(outputs[0], activation='softmax')(policy_dense)
+    output_Q = Dense(outputs[1], activation='tanh')(Q_dense)
+    model = keras.Model([input_layer], [output_policy, output_Q])
+    return model
 
 class MCTS:
     def __init__(self, game: Connect_four, n_branches=100, c=2, symmetry=True):
@@ -11,6 +30,7 @@ class MCTS:
         self.base_move = self.game.moves_played
         # Q has values of form [draws, player1, player2]
         self.Q = defaultdict(lambda: [0,0,0])
+        self.model = make_model(game.state.shape, [game.n_actions, 1])
         
     def policy(self, explore = 1):
         actions = self.game.legal_moves()
@@ -26,8 +46,8 @@ class MCTS:
         for action in actions:
             self.game.add_move(action)
             results = self.Q[self.game.state_to_string()]
-            n = sum(results)+0.001 #for stability
-            UCT = (results[self.game.turn * -1] - results[self.game.turn])/n + explore*self.c*np.sqrt(np.log(N)/n)
+            n = sum(results)+0.00001 #for stability
+            UCT = (results[self.game.turn * -1] - results[self.game.turn])/n + explore*self.c*np.sqrt(np.log(N+1)/n)
             if UCT > best:
                 best = UCT
                 best_action = action
@@ -35,12 +55,8 @@ class MCTS:
         return best_action
     
     
-    def rollout_policy(self):
-        actions = self.game.legal_moves()
-        return np.random.choice(actions)
-    
     def make_move(self):
-        action = self.rollout_policy()
+        action = self.policy()
         self.game.add_move(action)
     
     def rollout(self):
@@ -72,4 +88,4 @@ class MCTS:
             result = self.rollout()
             self.backprop(result)
             
-        return(self.policy())
+        return(self.policy(explore = 0))
