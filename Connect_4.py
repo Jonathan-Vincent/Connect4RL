@@ -113,6 +113,9 @@ class Connect_four():
             return ''.join(['X' if x == 1 else 'O' if x == -1 else '.' for x in state.flatten()])
         return ''.join(['X' if x == 1 else 'O' if x == -1 else '.' for x in self.state.flatten()])
     
+    def string_to_state(self, string):
+        return np.array([[1 if x == 'X' else -1 if x == 'O' else 0 for x in row] for row in string.split('\n')])
+    
     def print_state(self):
         print("\n".join([''.join(['X' if x == 1 else 'O' if x == -1 else '.' for x in row]) for row in self.state[::-1, :]]))
         

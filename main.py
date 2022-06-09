@@ -9,6 +9,7 @@ def load_Q(filename):
     return Q
 
 def save_Q(Q, filename):
+    Q = {key: value for key, value in Q.items() if sum(value) > 1}
     with open(filename, 'w') as f:
         json.dump(Q, f)
 
@@ -18,7 +19,7 @@ def run(game, q_status = ""):
     else: 
         Q = {}
     while True:
-        mcts = MCTS(game, n_branches=1000, c=10000, symmetry=True)
+        mcts = MCTS(game, n_branches=100, c=10000, symmetry=True)
         mcts.Q.update(Q)
         chosen_move = mcts.run()
         Q = mcts.Q
@@ -34,7 +35,7 @@ def run(game, q_status = ""):
         #time.sleep(0.5)
 
 def main():
-    q_status = ""
+    q_status = "rw"
     results = []
     for _ in range(100):
         game = Connect_four()

@@ -5,7 +5,7 @@ from tensorflow import keras
 from keras.layers import Dense, Dropout, Flatten, Conv2D, Activation, Add, Input
 
 def make_model(inputs, outputs, n_layers=2, n_nodes=64, activation='selu', dropout=0.2):
-    input_layer = Input(shape=(inputs,))
+    input_layer = Input(shape=inputs)
     layer = input_layer
     # make resnet layers
     for i in range(n_layers):
@@ -30,7 +30,7 @@ class MCTS:
         self.base_move = self.game.moves_played
         # Q has values of form [draws, player1, player2]
         self.Q = defaultdict(lambda: [0,0,0])
-        self.model = make_model(game.state.shape, [game.n_actions, 1])
+        #self.model = make_model((game.nrows,game.ncols,1,), [game.ncols, 1])
         
     def policy(self, explore = 1):
         actions = self.game.legal_moves()
