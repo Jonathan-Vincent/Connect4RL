@@ -3,7 +3,7 @@ from MCTS import MCTS
 import numpy as np
 
 def mcts_move(game, c):
-    mcts = MCTS(game, n_branches=10, c=c, symmetry=True)
+    mcts = MCTS(game, n_branches=1000, c=c, symmetry=True)
     chosen_move = mcts.run()
     if chosen_move in ["draw", "player1", "player2"]:
         return chosen_move

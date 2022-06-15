@@ -26,8 +26,10 @@ def mcts_move(game, Q):
     Q = mcts.Q
     if chosen_move in ["draw", "player1", "player2"]:
         return chosen_move
-    
     game.add_move(chosen_move)
+    if game.result() != None:
+        print_game(game)
+        return ["draw", "player1", "player2"][game.result()]
     return(Q)
     
 def player_move(game):
