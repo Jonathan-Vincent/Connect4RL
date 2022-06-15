@@ -1,5 +1,5 @@
 from Connect_4 import Connect_four
-from MCTS_2 import MCTS
+from MCTS import MCTS
 import json
 import time, os
 
@@ -8,16 +8,8 @@ def load_Q(filename):
         Q = json.load(f)
     return Q
 
-def save_Q(Q, filename):
-    Q = {key: value for key, value in Q.items() if sum(value) > 1}
-    with open(filename, 'w') as f:
-        json.dump(Q, f)
-
-def run(game, q_status = ""):
-    if "r" in q_status:
-        Q = load_Q('Q.json')
-    else: 
-        Q = {}
+def run(game):
+    Q = load_Q('Q.json')
     while True:
         mcts = MCTS(game, n_branches=100, c=10000, symmetry=True)
         mcts.Q.update(Q)
@@ -25,22 +17,16 @@ def run(game, q_status = ""):
         Q = mcts.Q
         
         if chosen_move in ["draw", "player1", "player2"]:
-            if "w" in q_status:
-                save_Q(Q, 'Q.json')
             return chosen_move
         
         game.add_move(chosen_move)
         _ = os.system('cls')
         game.print_state()
-        #time.sleep(0.5)
+        time.sleep(0.5)
 
 def main():
-    q_status = "rw"
-    results = []
-    for _ in range(100):
-        game = Connect_four()
-        results.append(run(game, q_status))
-    print("\n".join(results))
+    game = Connect_four()
+    print(run(game))
 
 if __name__ == "__main__":
     main()
